@@ -159,6 +159,7 @@ function useVoice(onTranscript: (text: string, isFinal: boolean) => void) {
   const wsRef = useRef<WebSocket | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const mimeTypeRef = useRef<string>('')
+  const lastRequestIdRef = useRef(0)
 
   const startRecording = useCallback(async () => {
     try {
@@ -288,16 +289,33 @@ function useVoice(onTranscript: (text: string, isFinal: boolean) => void) {
   }, [])
 
   const speak = useCallback(async (text: string) => {
-    audioRef.current?.pause()
+    const requestId = ++lastRequestIdRef.current
+    
+    // Stop any existing playback and clear ref immediately
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    
     setSpeaking(true)
     try {
       const audio = await speakText(text)
+      
+      // If a newer request has started, ignore this one entirely
+      if (requestId !== lastRequestIdRef.current) return
+      
       audioRef.current = audio
-      audio.onended = () => setSpeaking(false)
+      audio.onended = () => {
+        if (requestId === lastRequestIdRef.current) {
+          setSpeaking(false)
+        }
+      }
       await audio.play()
     } catch (err) {
-      console.error('TTS error', err)
-      setSpeaking(false)
+      if (requestId === lastRequestIdRef.current) {
+        console.error('TTS error', err)
+        setSpeaking(false)
+      }
     }
   }, [])
 
@@ -552,7 +570,7 @@ export function ChatArea() {
 
   const sendEmail = async (msgId: string) => {
     const msg = msgs.find(m => m.id === msgId)
-    if (!msg?.result) return
+    if (!msg?.result || msg.emailSent || busy) return
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
     try {
       await fetch(`${apiUrl}/api/claims/send`, {
