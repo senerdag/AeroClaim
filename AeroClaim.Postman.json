@@ -1,0 +1,117 @@
+{
+  "info": {
+    "name": "AeroClaim Autopilot",
+    "description": "EU261 Agentic Flight Compensation System - API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_base_url",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "worker_base_url",
+      "value": "http://localhost:5001"
+    }
+  ],
+  "item": [
+    {
+      "name": "API Gateway",
+      "item": [
+        {
+          "name": "Execute Claim (Full Pipeline)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightNumber\": \"W62205\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/claims/execute",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "claims", "execute"]
+            },
+            "description": "Triggers the full agentic pipeline: Flight lookup → Groq LLM analysis → EU261 compensation calculation → Email draft generation."
+          }
+        },
+        {
+          "name": "Send Email to Legal Dept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"claims@wizzair.com\",\n  \"subject\": \"Formal Notice - Compensation per EU261/2004\",\n  \"body\": \"To the Legal Department of Wizz Air,\\n\\nWe hereby demand compensation of €400 under EU Regulation 261/2004 for flight W62205.\\n\\nPlease process immediately.\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/claims/send",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "claims", "send"]
+            },
+            "description": "Dispatches the drafted legal email via Resend. The email is sent TO senershopify@gmail.com (hardcoded for demo) while showing the airline target in the body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Worker Service (Direct)",
+      "item": [
+        {
+          "name": "Process Flight via Groq LLM",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightNumber\": \"W62205\",\n  \"airline\": \"Wizz Air\",\n  \"departure\": \"BUD\",\n  \"arrival\": \"EIN\",\n  \"date\": \"2026-04-10\",\n  \"delayMinutes\": 270,\n  \"distanceKm\": 1150\n}"
+            },
+            "url": {
+              "raw": "{{worker_base_url}}/api/worker/process",
+              "host": ["{{worker_base_url}}"],
+              "path": ["api", "worker", "process"]
+            },
+            "description": "Directly calls the Worker's Groq LLM endpoint, bypassing the API gateway. Useful for isolated testing."
+          }
+        },
+        {
+          "name": "Send Email via Resend (Direct)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"claims@wizzair.com\",\n  \"subject\": \"Test Email from Worker\",\n  \"body\": \"This is a direct test of the Resend integration.\"\n}"
+            },
+            "url": {
+              "raw": "{{worker_base_url}}/api/worker/send-email",
+              "host": ["{{worker_base_url}}"],
+              "path": ["api", "worker", "send-email"]
+            },
+            "description": "Directly calls the Worker's Resend endpoint for isolated email testing."
+          }
+        }
+      ]
+    }
+  ]
+}

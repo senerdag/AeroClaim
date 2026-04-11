@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/out
+**/.vs
+**/.vscode
+**/node_modules
+**/.git
+**/Thumbs.db
+**/*.user
+**/*.suo
+**/AeroClaim.Web

@@ -1,0 +1,44 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: AeroClaim.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - WorkerBaseUrl=http://worker:8080
+    depends_on:
+      - worker
+    networks:
+      - aeroclaim-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: AeroClaim.Worker/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - GROQ_API_KEY=YOUR_GROQ_API_KEY_HERE
+      - RESEND_API_KEY=YOUR_RESEND_API_KEY_HERE
+    networks:
+      - aeroclaim-network
+
+  web:
+    build:
+      context: ./AeroClaim.Web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000
+    depends_on:
+      - api
+    networks:
+      - aeroclaim-network
+
+networks:
+  aeroclaim-network:
+    driver: bridge
